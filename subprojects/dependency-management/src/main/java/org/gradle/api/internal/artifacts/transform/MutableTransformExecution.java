@@ -28,12 +28,15 @@ import java.io.File;
 import java.util.Map;
 
 class MutableTransformExecution extends AbstractTransformExecution {
+    private final String rootProjectLocation;
+
     public MutableTransformExecution(
         Transform transform,
         File inputArtifact,
         TransformDependencies dependencies,
         TransformStepSubject subject,
         ProjectInternal owningProject,
+        ProjectInternal producerProject,
 
         TransformExecutionListener transformExecutionListener,
         BuildOperationExecutor buildOperationExecutor,
@@ -46,16 +49,25 @@ class MutableTransformExecution extends AbstractTransformExecution {
             transform, inputArtifact, dependencies, subject, owningProject,
             transformExecutionListener, buildOperationExecutor, progressEventEmitter, fileCollectionFactory, inputFingerprinter, workspaceServices
         );
+        this.rootProjectLocation = producerProject.getRootDir().getAbsolutePath() + File.separator;
     }
 
     @Override
     public Identity identify(Map<String, ValueSnapshot> identityInputs, Map<String, CurrentFileCollectionFingerprint> identityFileInputs) {
         MutableTransformWorkspaceIdentity transformWorkspaceIdentity = new MutableTransformWorkspaceIdentity(
-            inputArtifact.getAbsolutePath(),
+            normalizeAbsolutePath(inputArtifact.getAbsolutePath()),
             identityInputs.get(SECONDARY_INPUTS_HASH_PROPERTY_NAME),
             identityFileInputs.get(DEPENDENCIES_PROPERTY_NAME).getHash()
         );
         emitIdentifyTransformExecutionProgressDetails(transformWorkspaceIdentity);
         return transformWorkspaceIdentity;
+    }
+
+    private String normalizeAbsolutePath(String path) {
+        // We try to normalize the absolute path, so the workspace id is stable between machines for cacheable transforms.
+        if (path.startsWith(rootProjectLocation)) {
+            return path.substring(rootProjectLocation.length());
+        }
+        return path;
     }
 }

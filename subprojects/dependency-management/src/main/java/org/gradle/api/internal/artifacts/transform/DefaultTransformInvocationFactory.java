@@ -101,6 +101,7 @@ public class DefaultTransformInvocationFactory implements TransformInvocationFac
                 dependencies,
                 subject,
                 owningProject,
+                producerProject,
 
                 transformExecutionListener,
                 buildOperationExecutor,
