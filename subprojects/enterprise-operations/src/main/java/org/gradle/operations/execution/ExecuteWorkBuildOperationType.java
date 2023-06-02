@@ -24,6 +24,7 @@ public final class ExecuteWorkBuildOperationType implements BuildOperationType<E
 
     public interface Details {
         String getWorkType();
+        String getWorkspaceId();
     }
 
     public interface Result {
