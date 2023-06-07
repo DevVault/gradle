@@ -29,5 +29,17 @@ public final class ExecuteWorkBuildOperationType implements BuildOperationType<E
     public interface Result {
         @Nullable
         String getSkipMessage();
+
+        @Nullable
+        String getOriginBuildInvocationId();
+
+        @Nullable
+        Long getOriginExecutionTime();
+
+        @Nullable
+        String getCachingDisabledReasonMessage();
+
+        @Nullable
+        String getCachingDisabledReasonCategory();
     }
 }

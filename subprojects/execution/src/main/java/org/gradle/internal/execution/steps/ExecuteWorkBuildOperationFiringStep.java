@@ -20,6 +20,7 @@ import org.gradle.caching.internal.origin.OriginMetadata;
 import org.gradle.internal.Try;
 import org.gradle.internal.execution.ExecutionEngine;
 import org.gradle.internal.execution.UnitOfWork;
+import org.gradle.internal.execution.caching.CachingDisabledReason;
 import org.gradle.internal.execution.caching.CachingState;
 import org.gradle.internal.operations.BuildOperationDescriptor;
 import org.gradle.internal.operations.BuildOperationExecutor;
@@ -41,7 +42,11 @@ public class ExecuteWorkBuildOperationFiringStep<C extends IdentityContext, R ex
     public R execute(UnitOfWork work, C context) {
         return operation(operationContext -> {
                 R result = delegate.execute(work, context);
-                ExecuteWorkBuildOperationType.Result operationResult = new ExecuteWorkResult(result.getExecution());
+                ExecuteWorkBuildOperationType.Result operationResult = new ExecuteWorkResult(
+                    result.getExecution(),
+                    result.getCachingState(),
+                    result.getReusedOutputOriginMetadata()
+                );
                 operationContext.setResult(operationResult);
                 return result;
             },
@@ -50,7 +55,7 @@ public class ExecuteWorkBuildOperationFiringStep<C extends IdentityContext, R ex
                 .details(new ExecuteWorkDetails(work)));
     }
 
-    private class ExecuteWorkDetails implements ExecuteWorkBuildOperationType.Details {
+    private static class ExecuteWorkDetails implements ExecuteWorkBuildOperationType.Details {
 
         private final UnitOfWork work;
 
@@ -68,15 +73,31 @@ public class ExecuteWorkBuildOperationFiringStep<C extends IdentityContext, R ex
     private static class ExecuteWorkResult implements ExecuteWorkBuildOperationType.Result {
 
         private final Try<ExecutionEngine.Execution> execution;
+        private final CachingState cachingState;
+        private final Optional<OriginMetadata> originMetadata;
 
-        public ExecuteWorkResult(Try<ExecutionEngine.Execution> execution) {
+        public ExecuteWorkResult(Try<ExecutionEngine.Execution> execution, CachingState cachingState, Optional<OriginMetadata> originMetadata) {
             this.execution = execution;
+            this.cachingState = cachingState;
+            this.originMetadata = originMetadata;
         }
 
         @Nullable
         @Override
         public String getSkipMessage() {
             return execution.map(ExecuteWorkResult::getSkipMessage).getOrMapFailure(f -> null);
+        }
+
+        @Nullable
+        @Override
+        public String getOriginBuildInvocationId() {
+            return originMetadata.map(OriginMetadata::getBuildInvocationId).orElse(null);
+        }
+
+        @Nullable
+        @Override
+        public Long getOriginExecutionTime() {
+            return originMetadata.map(metadata -> metadata.getExecutionTime().toMillis()).orElse(null);
         }
 
         @Nullable
@@ -94,6 +115,30 @@ public class ExecuteWorkBuildOperationFiringStep<C extends IdentityContext, R ex
                 default:
                     throw new IllegalArgumentException("Unknown execution outcome: " + execution.getOutcome());
             }
+        }
+
+        @Nullable
+        @Override
+        public String getCachingDisabledReasonMessage() {
+            return getCachingDisabledReason()
+                .map(CachingDisabledReason::getMessage)
+                .orElse(null);
+        }
+
+        @Nullable
+        @Override
+        public String getCachingDisabledReasonCategory() {
+            return getCachingDisabledReason()
+                .map(CachingDisabledReason::getCategory)
+                .map(Enum::name)
+                .orElse(null);
+        }
+
+        private Optional<CachingDisabledReason> getCachingDisabledReason() {
+            return cachingState
+                .whenDisabled()
+                .map(CachingState.Disabled::getDisabledReasons)
+                .map(reasons -> reasons.get(0));
         }
     }
 }
