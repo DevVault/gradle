@@ -32,6 +32,9 @@ public final class ExecuteWorkBuildOperationType implements BuildOperationType<E
         String getSkipMessage();
 
         @Nullable
+        Throwable getFailure();
+
+        @Nullable
         String getOriginBuildInvocationId();
 
         @Nullable
