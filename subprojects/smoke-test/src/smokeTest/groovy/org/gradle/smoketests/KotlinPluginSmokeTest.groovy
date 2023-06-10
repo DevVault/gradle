@@ -70,7 +70,7 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         where:
         [version, workers] << [
             TestedVersions.kotlin.versions,
-            [true, false]
+            Workers.values()
         ].combinations()
     }
 
@@ -106,7 +106,7 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         where:
         [version, workers] << [
             TestedVersions.kotlin.versions,
-            [true, false]
+            Workers.values()
         ].combinations()
     }
 
