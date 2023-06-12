@@ -18,6 +18,8 @@ package org.gradle.smoketests
 
 import org.gradle.util.GradleVersion
 
+import java.nio.file.Files
+
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 
 /**
@@ -33,7 +35,7 @@ import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
  * </ul>
  */
 class BNDSmokeTest extends AbstractPluginValidatingSmokeTest {
-    def "builds using BND correctly write dependency versions to the manifest"() {
+    def "builds using BND and correctly writes direct external dependency versions to the manifest"() {
         given:
         def commonsVersionRange = "[3.12,4)"
         settingsFile << """
@@ -59,9 +61,9 @@ tasks.named("jar") {
         // Make this work with CC
         properties.empty()
 
-        bnd("-exportcontents": "com.example.*",
-            "-sources": "true",
-            "Import-Package": "org.apache.*")
+        bnd('-exportcontents': 'com.example.*',
+            '-sources': 'true',
+            'Import-Package': 'org.apache.*')
     }
 }
 
@@ -99,7 +101,110 @@ public class Example {
 
         and: "version numbers exist in the unpacked manifest file"
         def unpackedManifest = file("build/unpacked/META-INF/MANIFEST.MF")
-        assert unpackedManifest.text.lines().anyMatch { it == "Import-Package: org.apache.commons.lang3;version=\"$commonsVersionRange\"" }
+        def lines = Files.readAllLines(unpackedManifest.toPath())
+        assert lines.stream().anyMatch { it == "Import-Package: org.apache.commons.lang3;version=\"$commonsVersionRange\"" }
+    }
+
+    def "builds using BND and correctly write transitive external dependency of a direct project dependency versions to the manifest"() {
+        given:
+        def commonsVersionRange = "[3.12,4)"
+        def directVersion = "2.7"
+        settingsFile << """
+pluginManagement {
+    plugins {
+        id "biz.aQute.bnd.builder" version "${TestedVersions.bnd}"
+    }
+}
+
+include "direct"
+"""
+        buildFile << """
+plugins {
+    id "biz.aQute.bnd.builder"
+}
+
+${mavenCentralRepository()}
+
+dependencies {
+    implementation project(":direct")
+}
+
+tasks.named("jar") {
+    bundle {
+        // Make this work with CC
+        properties.empty()
+
+        bnd('-exportcontents': 'com.example.*',
+            '-sources': 'true',
+            'Import-Package': 'com.example.util.*;version="${directVersion}"')
+    }
+}
+
+tasks.register("unpackManifest", Copy) {
+    from(zipTree(jar.archiveFile)) {
+        include("META-INF/MANIFEST.MF")
+    }
+    into(layout.buildDirectory.dir("unpacked"))
+}
+"""
+
+        file("src/main/java/com/example/Example.java") << """
+package com.example;
+
+import com.example.util.MyUtil;
+
+public class Example {
+    public boolean testIsEmpty(String someString) {
+        return MyUtil.myIsEmpty(someString);
+    }
+}
+"""
+
+        and:
+        file("direct/build.gradle") << """
+plugins {
+    id "java-library"
+}
+
+group = "com.example.direct"
+version = "$directVersion"
+
+${mavenCentralRepository()}
+
+dependencies {
+    api "org.apache.commons:commons-lang3:$commonsVersionRange"
+    api "com.google.guava:guava:30.1.1-jre"
+}
+"""
+
+        file("direct/src/main/java/com/example/util/MyUtil.java") << """
+package com.example.util;
+
+import org.apache.commons.lang3.StringUtils;
+
+public class MyUtil {
+    public static boolean myIsEmpty(String someString) {
+        return StringUtils.isEmpty(someString);
+    }
+}
+"""
+
+        when:
+        def result = runner("unpackManifest")
+            .forwardOutput()
+            .expectLegacyDeprecationWarning("The AbstractTask.getConvention() method has been deprecated. " +
+                "This is scheduled to be removed in Gradle 9.0. " +
+                "Consult the upgrading guide for further information: " +
+                "https://docs.gradle.org/${GradleVersion.current().version}/userguide/upgrading_version_8.html#deprecated_access_to_conventions")
+            .run()
+
+        then: "the build succeeds"
+        result.task(":unpackManifest").outcome == SUCCESS
+
+        and: "version numbers exist in the unpacked manifest file"
+        def unpackedManifest = file("build/unpacked/META-INF/MANIFEST.MF")
+        def lines = Files.readAllLines(unpackedManifest.toPath())
+        assert lines.stream().anyMatch { it == "Import-Package: com.example.util;version=\"${directVersion}\"" }
     }
 
     @Override
