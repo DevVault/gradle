@@ -27,24 +27,24 @@ import static org.junit.Assume.assumeTrue
 
 class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
 
-    def 'kotlin jvm (kotlin=#version, workers=#workers)'() {
+    def 'kotlin jvm (kotlin=#version, workers=#parallelTasksInProject)'() {
         given:
         useSample("kotlin-example")
         replaceVariablesInBuildFile(kotlinVersion: version)
         def versionNumber = VersionNumber.parse(version)
 
         when:
-        def result = runner(workers, versionNumber, 'run')
+        def result = runner(workers, parallelTasksInProject, 'run')
             .deprecations(KotlinDeprecations) {
-                expectKotlinParallelTasksDeprecation(version, workers)
-                expectKotlinArchiveNameDeprecation(version)
-                expectAbstractCompileDestinationDirDeprecation(version)
-                expectOrgGradleUtilWrapUtilDeprecation(version)
-                expectProjectConventionDeprecation(version)
-                expectConventionTypeDeprecation(version)
-                expectJavaPluginConventionDeprecation(version)
+                expectKotlinParallelTasksDeprecation(versionNumber, workers)
+                expectKotlinArchiveNameDeprecation(versionNumber)
+                expectAbstractCompileDestinationDirDeprecation(versionNumber)
+                expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                expectProjectConventionDeprecation(versionNumber)
+                expectConventionTypeDeprecation(versionNumber)
+                expectJavaPluginConventionDeprecation(versionNumber)
                 if (GradleContextualExecuter.isConfigCache()) {
-                    expectBasePluginConventionDeprecation(version)
+                    expectBasePluginConventionDeprecation(versionNumber)
                 }
             }.build()
 
@@ -53,13 +53,13 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         assert result.output.contains("Hello world!")
 
         when:
-        result = runner(workers, versionNumber, 'run')
+        result = runner(parallelTasksInProject, versionNumber, 'run')
             .deprecations(KotlinDeprecations) {
                 if (GradleContextualExecuter.isNotConfigCache()) {
-                    expectOrgGradleUtilWrapUtilDeprecation(version)
-                    expectProjectConventionDeprecation(version)
-                    expectConventionTypeDeprecation(version)
-                    expectJavaPluginConventionDeprecation(version)
+                    expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                    expectProjectConventionDeprecation(versionNumber)
+                    expectConventionTypeDeprecation(versionNumber)
+                    expectJavaPluginConventionDeprecation(versionNumber)
                 }
             }.build()
 
@@ -68,13 +68,13 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         assert result.output.contains("Hello world!")
 
         where:
-        [version, workers] << [
+        [version, parallelTasksInProject] << [
             TestedVersions.kotlin.versions,
             ParallelTasksInProject.values()
         ].combinations()
     }
 
-    def 'kotlin javascript (kotlin=#version, workers=#workers)'() {
+    def 'kotlin javascript (kotlin=#version, workers=#parallelTasksInProject)'() {
 
         // kotlinjs has been removed in Kotlin 1.7 in favor of kotlin-mpp
         assumeTrue(VersionNumber.parse(version).baseVersion < VersionNumber.version(1, 7))
@@ -89,14 +89,14 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         def result = runner(parallelTasksInProject, versionNumber, 'compileKotlin2Js')
             .deprecations(KotlinDeprecations) {
                 expectKotlinParallelTasksDeprecation(versionNumber, parallelTasksInProject)
-                expectKotlin2JsPluginDeprecation(version)
-                expectKotlinCompileDestinationDirPropertyDeprecation(version)
-                expectKotlinArchiveNameDeprecation(version)
-                expectOrgGradleUtilWrapUtilDeprecation(version)
-                expectProjectConventionDeprecation(version)
-                expectConventionTypeDeprecation(version)
-                expectJavaPluginConventionDeprecation(version)
-                expectBasePluginConventionDeprecation(version)
+                expectKotlin2JsPluginDeprecation(versionNumber)
+                expectKotlinCompileDestinationDirPropertyDeprecation(versionNumber)
+                expectKotlinArchiveNameDeprecation(versionNumber)
+                expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                expectProjectConventionDeprecation(versionNumber)
+                expectConventionTypeDeprecation(versionNumber)
+                expectJavaPluginConventionDeprecation(versionNumber)
+                expectBasePluginConventionDeprecation(versionNumber)
             }.build()
 
         then:
@@ -145,15 +145,15 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         when:
         def result = runner(parallelTasksInProject, versionNumber, 'compileJava')
             .deprecations(KotlinDeprecations) {
-                expectKotlinParallelTasksDeprecation(kotlinVersion, parallelTasksInProject)
-                expectKotlinArchiveNameDeprecation(kotlinVersion)
-                expectAbstractCompileDestinationDirDeprecation(kotlinVersion)
-                expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
-                expectProjectConventionDeprecation(kotlinVersion)
-                expectConventionTypeDeprecation(kotlinVersion)
-                expectJavaPluginConventionDeprecation(kotlinVersion)
+                expectKotlinParallelTasksDeprecation(versionNumber, parallelTasksInProject)
+                expectKotlinArchiveNameDeprecation(versionNumber)
+                expectAbstractCompileDestinationDirDeprecation(versionNumber)
+                expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                expectProjectConventionDeprecation(versionNumber)
+                expectConventionTypeDeprecation(versionNumber)
+                expectJavaPluginConventionDeprecation(versionNumber)
                 if (GradleContextualExecuter.isConfigCache()) {
-                    expectBasePluginConventionDeprecation(kotlinVersion)
+                    expectBasePluginConventionDeprecation(versionNumber)
                 }
             }.build()
 
@@ -193,11 +193,11 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         when:
         def result = runner(ParallelTasksInProject.FALSE, versionNumber, 'build')
             .deprecations(KotlinDeprecations) {
-                expectAbstractCompileDestinationDirDeprecation(kotlinVersion)
-                expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
-                expectProjectConventionDeprecation(kotlinVersion)
-                expectConventionTypeDeprecation(kotlinVersion)
-                expectJavaPluginConventionDeprecation(kotlinVersion)
+                expectAbstractCompileDestinationDirDeprecation(versionNumber)
+                expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                expectProjectConventionDeprecation(versionNumber)
+                expectConventionTypeDeprecation(versionNumber)
+                expectJavaPluginConventionDeprecation(versionNumber)
             }.build()
 
         then:
@@ -207,10 +207,10 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         result = runner(ParallelTasksInProject.FALSE, versionNumber, 'build')
             .deprecations(KotlinDeprecations) {
                 if (GradleContextualExecuter.isNotConfigCache()) {
-                    expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
-                    expectProjectConventionDeprecation(kotlinVersion)
-                    expectConventionTypeDeprecation(kotlinVersion)
-                    expectJavaPluginConventionDeprecation(kotlinVersion)
+                    expectOrgGradleUtilWrapUtilDeprecation(versionNumber)
+                    expectProjectConventionDeprecation(versionNumber)
+                    expectConventionTypeDeprecation(versionNumber)
+                    expectJavaPluginConventionDeprecation(versionNumber)
                 }
             }.build()
 
