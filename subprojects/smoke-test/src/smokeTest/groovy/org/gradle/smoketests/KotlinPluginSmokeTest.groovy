@@ -36,7 +36,7 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         when:
         def result = runner(workers, versionNumber, 'run')
             .deprecations(KotlinDeprecations) {
-                expectKotlinWorkerSubmitDeprecation(workers, version)
+                expectKotlinParallelTasksDeprecation(version, workers)
                 expectKotlinArchiveNameDeprecation(version)
                 expectAbstractCompileDestinationDirDeprecation(version)
                 expectOrgGradleUtilWrapUtilDeprecation(version)
@@ -88,9 +88,8 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         when:
         def result = runner(workers, versionNumber, 'compileKotlin2Js')
             .deprecations(KotlinDeprecations) {
-                expectKotlinWorkerSubmitDeprecation(workers, version)
+                expectKotlinParallelTasksDeprecation(version, workers)
                 expectKotlin2JsPluginDeprecation(version)
-                expectKotlinParallelTasksDeprecation(version)
                 expectKotlinCompileDestinationDirPropertyDeprecation(version)
                 expectKotlinArchiveNameDeprecation(version)
                 expectOrgGradleUtilWrapUtilDeprecation(version)
@@ -141,10 +140,12 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         file("src/main/groovy/Groovy.groovy") << "class Groovy { }"
         file("src/main/kotlin/Kotlin.kt") << "class Kotlin { val groovy = Groovy() }"
         file("src/main/java/Java.java") << "class Java { private Kotlin kotlin = new Kotlin(); }" // dependency to compileJava->compileKotlin is added by Kotlin plugin
+        def workers = Workers.FALSE
 
         when:
-        def result = runner(false, versionNumber, 'compileJava')
+        def result = runner(workers, versionNumber, 'compileJava')
             .deprecations(KotlinDeprecations) {
+                expectKotlinParallelTasksDeprecation(kotlinVersion, workers)
                 expectKotlinArchiveNameDeprecation(kotlinVersion)
                 expectAbstractCompileDestinationDirDeprecation(kotlinVersion)
                 expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
@@ -190,7 +191,7 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         def versionNumber = VersionNumber.parse(kotlinVersion)
 
         when:
-        def result = runner(false, versionNumber, 'build')
+        def result = runner(Workers.FALSE, versionNumber, 'build')
             .deprecations(KotlinDeprecations) {
                 expectAbstractCompileDestinationDirDeprecation(kotlinVersion)
                 expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
@@ -203,7 +204,7 @@ class KotlinPluginSmokeTest extends AbstractKotlinPluginSmokeTest {
         result.task(':compileKotlin').outcome == SUCCESS
 
         when:
-        result = runner(false, versionNumber, 'build')
+        result = runner(Workers.FALSE, versionNumber, 'build')
             .deprecations(KotlinDeprecations) {
                 if (GradleContextualExecuter.isNotConfigCache()) {
                     expectOrgGradleUtilWrapUtilDeprecation(kotlinVersion)
