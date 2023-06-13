@@ -16,7 +16,7 @@
 
 package org.gradle.smoketests
 
-import org.gradle.util.GradleVersion
+import org.gradle.util.internal.VersionNumber
 
 import java.nio.file.Files
 
@@ -35,7 +35,7 @@ import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
  * </ul>
  */
 class BNDSmokeTest extends AbstractPluginValidatingSmokeTest {
-    def "builds using BND and correctly writes direct external dependency versions to the manifest"() {
+    def "builds using BND and correctly writes direct external dependency versions to the manifest (gradle=#gradleVersion)"() {
         given:
         def commonsVersionRange = "[3.12,4)"
         settingsFile << """
@@ -89,11 +89,14 @@ public class Example {
 
         when:
         def result = runner("unpackManifest")
+            .withGradleVersion(gradleVersion)
             .forwardOutput()
-            .expectLegacyDeprecationWarning("The AbstractTask.getConvention() method has been deprecated. " +
+            .expectLegacyDeprecationWarningIf(
+                VersionNumber.parse(gradleVersion) > VersionNumber.parse("8.1"),
+                "The AbstractTask.getConvention() method has been deprecated. " +
                 "This is scheduled to be removed in Gradle 9.0. " +
                 "Consult the upgrading guide for further information: " +
-                "https://docs.gradle.org/${GradleVersion.current().version}/userguide/upgrading_version_8.html#deprecated_access_to_conventions")
+                "https://docs.gradle.org/$gradleVersion/userguide/upgrading_version_8.html#deprecated_access_to_conventions")
             .run()
 
         then: "the build succeeds"
@@ -103,9 +106,12 @@ public class Example {
         def unpackedManifest = file("build/unpacked/META-INF/MANIFEST.MF")
         def lines = Files.readAllLines(unpackedManifest.toPath())
         assert lines.stream().anyMatch { it == "Import-Package: org.apache.commons.lang3;version=\"$commonsVersionRange\"" }
+
+        where:
+        gradleVersion << ["8.1", "8.2-rc-2"]
     }
 
-    def "builds using BND and correctly write transitive external dependency of a direct project dependency versions to the manifest"() {
+    def "builds using BND and correctly write transitive external dependency of a direct project dependency versions to the manifest (gradle=#gradleVersion)"() {
         given:
         def commonsVersionRange = "[3.12,4)"
         def directVersion = "2.7"
@@ -136,7 +142,7 @@ tasks.named("jar") {
 
         bnd('-exportcontents': 'com.example.*',
             '-sources': 'true',
-            'Import-Package': 'com.example.util.*;version="${directVersion}"')
+            'Import-Package': 'com.example.util.*')
     }
 }
 
@@ -181,21 +187,25 @@ dependencies {
 package com.example.util;
 
 import org.apache.commons.lang3.StringUtils;
+import com.google.common.base.Strings;
 
 public class MyUtil {
     public static boolean myIsEmpty(String someString) {
-        return StringUtils.isEmpty(someString);
+        return StringUtils.isEmpty(Strings.nullToEmpty(someString));
     }
 }
 """
 
         when:
         def result = runner("unpackManifest")
+            .withGradleVersion(gradleVersion)
             .forwardOutput()
-            .expectLegacyDeprecationWarning("The AbstractTask.getConvention() method has been deprecated. " +
+            .expectLegacyDeprecationWarningIf(
+                VersionNumber.parse(gradleVersion) > VersionNumber.parse("8.1"),
+                "The AbstractTask.getConvention() method has been deprecated. " +
                 "This is scheduled to be removed in Gradle 9.0. " +
                 "Consult the upgrading guide for further information: " +
-                "https://docs.gradle.org/${GradleVersion.current().version}/userguide/upgrading_version_8.html#deprecated_access_to_conventions")
+                "https://docs.gradle.org/$gradleVersion/userguide/upgrading_version_8.html#deprecated_access_to_conventions")
             .run()
 
         then: "the build succeeds"
@@ -204,7 +214,10 @@ public class MyUtil {
         and: "version numbers exist in the unpacked manifest file"
         def unpackedManifest = file("build/unpacked/META-INF/MANIFEST.MF")
         def lines = Files.readAllLines(unpackedManifest.toPath())
-        assert lines.stream().anyMatch { it == "Import-Package: com.example.util;version=\"${directVersion}\"" }
+        assert lines.stream().anyMatch { it == "Import-Package: com.example.util" }
+
+        where:
+        gradleVersion << ["8.1", "8.2-rc-2"]
     }
 
     @Override
