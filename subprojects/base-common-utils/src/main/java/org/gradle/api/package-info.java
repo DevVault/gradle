@@ -14,15 +14,8 @@
  * limitations under the License.
  */
 
-plugins {
-    id("gradlebuild.internal.java")
-}
-
-dependencies {
-    implementation(project(":base-annotations"))
-
-    implementation(libs.groovy)
-    implementation(libs.asm)
-    implementation(libs.asmTree)
-    implementation(libs.asmCommons)
-}
+/**
+ * <p>Gradle's build language API, which is available from your build files.
+ * Location of the main interfaces involved in build scripts.</p>
+ */
+package org.gradle.api;

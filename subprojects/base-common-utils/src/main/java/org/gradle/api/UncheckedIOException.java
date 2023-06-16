@@ -13,16 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.gradle.api;
 
-plugins {
-    id("gradlebuild.internal.java")
-}
+/**
+ * <code>UncheckedIOException</code> is used to wrap an {@link java.io.IOException} into an unchecked exception.
+ */
+public class UncheckedIOException extends RuntimeException {
+    public UncheckedIOException() {
+    }
 
-dependencies {
-    implementation(project(":base-annotations"))
+    public UncheckedIOException(String message) {
+        super(message);
+    }
 
-    implementation(libs.groovy)
-    implementation(libs.asm)
-    implementation(libs.asmTree)
-    implementation(libs.asmCommons)
+    public UncheckedIOException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public UncheckedIOException(Throwable cause) {
+        super(cause);
+    }
 }

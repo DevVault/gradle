@@ -19,14 +19,17 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":base-annotations"))
-    implementation(project(":base-common-utils"))
     implementation(project(":internal-instrumentation-call-interception-tool"))
-    implementation(project(":internal-instrumentation-property-upgrades"))
+    implementation(libs.javaPoet)
+
+    implementation(project(":base-services"))
+    implementation(project(":model-core"))
+
+    implementation(libs.asm)
+    implementation(libs.asmCommons)
 
     testImplementation(libs.compileTesting)
     testImplementation(project(":core"))
-    testImplementation(project(":base-services"))
 }
 
 tasks.named<Test>("test").configure {

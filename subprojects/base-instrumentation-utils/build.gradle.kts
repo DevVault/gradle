@@ -15,14 +15,24 @@
  */
 
 plugins {
-    id("gradlebuild.internal.java")
+    id("gradlebuild.distribution.api-java")
+    id("gradlebuild.jmh")
 }
+
+description = "The JVM bytecode instrumentation utilities reused across the codebase"
+
+gradlebuildJava.usedInWorkers()
 
 dependencies {
     implementation(project(":base-annotations"))
+    implementation(project(":base-common-utils"))
 
-    implementation(libs.groovy)
     implementation(libs.asm)
-    implementation(libs.asmTree)
-    implementation(libs.asmCommons)
+    implementation(libs.jsr305)
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release = null
+    sourceCompatibility = "8"
+    targetCompatibility = "8"
 }
